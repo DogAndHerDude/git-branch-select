@@ -1,0 +1,78 @@
+#!/bin/sh
+set -e
+
+green='\033[0;32m'
+clear='\033[0m'
+
+function save_term_to_buff {
+  printf '\e[?1049h'
+}
+
+function restore {
+  printf '\e[?1049l'
+}
+
+function ctrl_c() {
+  restore
+  exit 0
+}
+
+function handle_up {
+  if [ $selectionIndex -gt 0 ]
+  then
+    selectionIndex=$(($selectionIndex - 1))
+  fi
+}
+
+function handle_down {
+  if [ $selectionIndex -lt ${#branchArray[@]} ]
+  then
+    selectionIndex=$(($selectionIndex + 1))
+  fi
+}
+
+
+
+function render_list {
+  save_term_to_buff
+  printf '\e[2J\e[H'
+  for index in "${!branchArray[@]}"
+  do
+    if [ $index -eq $selectionIndex ]
+    then
+      echo "${green}* ${branchArray[index]}${clear}"
+   else
+      echo "${branchArray[index]}"
+    fi
+  done
+
+  while read -rsn 1 input; do
+    echo "$input"
+    case $input in
+      A)
+        handle_up
+        render_list
+        ;;
+      B)
+        handle_down
+        render_list
+        ;;
+      "")
+        git checkout "${branchArray[selectionIndex]}"
+        restore
+        exit 0
+        ;;
+    esac
+  done
+}
+
+branches=$(git branch) || ctrl_c
+read -a branchArray <<< $branches
+selectionIndex=0
+# trap ctrl-c and call ctrl_c()
+trap ctrl_c INT
+
+
+echo "\nSelect branch:\n"
+render_list
+restore
