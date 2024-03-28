@@ -49,6 +49,14 @@ function render_list {
   while read -rsn 1 input; do
     echo "$input"
     case $input in
+      k)
+        handle_up
+        render_list
+        ;;
+      j)
+        handle_down
+        render_list
+        ;;
       A)
         handle_up
         render_list
